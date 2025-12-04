@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<deploy xmlns="http://www.apache.org/ode/schemas/dd/2007/03"
+        xmlns:ship="http://supplychain.example.com/shipper"
+        xmlns:store="http://supplychain.example.com/store"
+        xmlns:tns="http://supplychain.example.com/bpel/shipper">
+
+    <process name="tns:ShipperProcess">
+        <active>true</active>
+
+        <!-- Service exposé : reçoit les demandes du Manufacturer -->
+        <provide partnerLink="manufacturerPL">
+            <service name="ship:ShipperService" port="ShipperPort"/>
+        </provide>
+
+        <!-- Callback vers le Store -->
+        <invoke partnerLink="storeCallbackPL">
+            <service name="store:StoreCallbackService" port="StoreCallbackPort"/>
+        </invoke>
+
+    </process>
+
+</deploy>

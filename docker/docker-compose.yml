@@ -1,0 +1,39 @@
+version: "3.9"
+
+services:
+  # Apache ODE BPEL Engine
+  ode:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.ode
+    container_name: ode-bpel
+    hostname: ode-bpel
+    ports:
+      - "8081:8080"
+    volumes:
+      - ode-logs:/usr/local/tomcat/logs
+    environment:
+      - CATALINA_OPTS=-Xms512m -Xmx1024m
+    networks:
+      - bpel-network
+    restart: unless-stopped
+
+  # SoapUI Test Runner (optionnel, utiliser --profile test)
+  soapui:
+    image: smartbear/soapuios-testrunner:latest
+    container_name: soapui-cli
+    depends_on:
+      - ode
+    volumes:
+      - ../tests:/tests:ro
+    networks:
+      - bpel-network
+    profiles:
+      - test
+
+networks:
+  bpel-network:
+    driver: bridge
+
+volumes:
+  ode-logs:

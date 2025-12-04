@@ -1,0 +1,51 @@
+# =============================================================================
+# Apache ODE BPEL Engine sur Tomcat 9
+# =============================================================================
+FROM tomcat:9-jdk11
+
+LABEL maintainer="BPEL Supply Chain Project"
+
+ENV CATALINA_HOME=/usr/local/tomcat
+ENV ODE_HOME=${CATALINA_HOME}/webapps/ode
+
+# Installation des outils
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget unzip curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Télécharger ODE WAR depuis Maven Central
+RUN mkdir -p ${ODE_HOME} && \
+    cd /tmp && \
+    wget -q --no-check-certificate \
+    "https://repo1.maven.org/maven2/org/apache/ode/ode-axis2-war/1.3.8/ode-axis2-war-1.3.8.war" \
+    -O ode.war && \
+    unzip -q ode.war -d ${ODE_HOME} && \
+    rm -f ode.war
+
+# Créer les répertoires pour les processus
+RUN mkdir -p ${ODE_HOME}/WEB-INF/processes/ManufacturerProcess \
+             ${ODE_HOME}/WEB-INF/processes/ShipperProcess \
+             ${ODE_HOME}/WEB-INF/processes/StoreProcess
+
+# Copier les fichiers du projet
+COPY schemas/ ${ODE_HOME}/WEB-INF/processes/
+COPY wsdl/ ${ODE_HOME}/WEB-INF/processes/
+COPY processes/ManufacturerProcess/ ${ODE_HOME}/WEB-INF/processes/ManufacturerProcess/
+COPY processes/ShipperProcess/ ${ODE_HOME}/WEB-INF/processes/ShipperProcess/
+COPY processes/StoreProcess/ ${ODE_HOME}/WEB-INF/processes/StoreProcess/
+
+# Copier WSDL et schemas dans chaque processus
+RUN for dir in ManufacturerProcess ShipperProcess StoreProcess; do \
+        cp ${ODE_HOME}/WEB-INF/processes/*.wsdl ${ODE_HOME}/WEB-INF/processes/$dir/ 2>/dev/null || true; \
+        cp ${ODE_HOME}/WEB-INF/processes/*.xsd ${ODE_HOME}/WEB-INF/processes/$dir/ 2>/dev/null || true; \
+    done
+
+# Permissions
+RUN chmod -R 755 ${ODE_HOME}
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8080/ode/ || exit 1
+
+CMD ["catalina.sh", "run"]

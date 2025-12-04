@@ -1,0 +1,23 @@
+# SoapUI CLI pour tests automatisés
+FROM smartbear/soapuios-testrunner:5.7.0
+
+LABEL maintainer="BPEL Supply Chain Project"
+LABEL description="SoapUI Test Runner for BPEL choreography testing"
+
+# Répertoire de travail
+WORKDIR /tests
+
+# Volume pour les projets de test
+VOLUME ["/tests"]
+
+# Variables d'environnement
+ENV SOAPUI_PRO_DIR=/opt/SoapUI
+ENV PROJECT_FILE=/tests/StoreProcess-soapui-project.xml
+
+# Script d'entrée personnalisé
+COPY docker/run-tests.sh /run-tests.sh
+RUN chmod +x /run-tests.sh 2>/dev/null || true
+
+# Commande par défaut : exécuter les tests
+ENTRYPOINT ["testrunner.sh"]
+CMD ["-r", "-j", "-f/tests/results", "/tests/StoreProcess-soapui-project.xml"]

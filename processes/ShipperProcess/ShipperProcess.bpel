@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<process name="ShipperProcess"
+         targetNamespace="http://supplychain.example.com/bpel/shipper"
+         xmlns="http://docs.oasis-open.org/wsbpel/2.0/process/executable"
+         xmlns:bpel="http://docs.oasis-open.org/wsbpel/2.0/process/executable"
+         xmlns:tns="http://supplychain.example.com/bpel/shipper"
+         xmlns:ship="http://supplychain.example.com/shipper"
+         xmlns:store="http://supplychain.example.com/store"
+         xmlns:schema="http://supplychain.example.com/schemas"
+         expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xpath2.0"
+         queryLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xpath2.0">
+
+    <!-- ==================== IMPORTS ==================== -->
+    <import namespace="http://supplychain.example.com/shipper"
+            location="../../wsdl/Shipper.wsdl"
+            importType="http://schemas.xmlsoap.org/wsdl/"/>
+    <import namespace="http://supplychain.example.com/store"
+            location="../../wsdl/Store.wsdl"
+            importType="http://schemas.xmlsoap.org/wsdl/"/>
+
+    <!-- ==================== PARTNER LINKS ==================== -->
+    <partnerLinks>
+        <!-- Link avec le Manufacturer (reçoit demande d'expédition) -->
+        <partnerLink name="manufacturerPL"
+                     partnerLinkType="ship:ShipperPartnerLT"
+                     myRole="shipperService"/>
+
+        <!-- Link pour callback vers Store -->
+        <partnerLink name="storeCallbackPL"
+                     partnerLinkType="store:StorePartnerLT"
+                     partnerRole="storeCallback"/>
+    </partnerLinks>
+
+    <!-- ==================== VARIABLES ==================== -->
+    <variables>
+        <variable name="shippingRequest" messageType="ship:ShippingRequestMessage"/>
+        <variable name="shippingStatus" messageType="store:ShippingStatusMessage"/>
+    </variables>
+
+    <!-- ==================== CORRELATION SETS ==================== -->
+    <correlationSets>
+        <correlationSet name="orderCorrelation" properties="tns:orderId"/>
+    </correlationSets>
+
+    <!-- ==================== MAIN SEQUENCE ==================== -->
+    <sequence name="MainSequence">
+
+        <!-- 1. Recevoir la demande d'expédition du Manufacturer -->
+        <receive name="ReceiveShippingRequest"
+                 partnerLink="manufacturerPL"
+                 portType="ship:ShipperPortType"
+                 operation="requestShipping"
+                 variable="shippingRequest"
+                 createInstance="yes">
+            <correlations>
+                <correlation set="orderCorrelation" initiate="yes"/>
+            </correlations>
+        </receive>
+
+        <!-- 2. Simuler le temps de préparation (15 secondes) -->
+        <wait name="SimulatePreparation">
+            <for>'PT15S'</for>
+        </wait>
+
+        <!-- 3. Préparer le statut d'expédition avec tracking -->
+        <assign name="PrepareShippingStatus">
+            <copy>
+                <from>$shippingRequest.parameters/schema:orderId</from>
+                <to>$shippingStatus.parameters/schema:orderId</to>
+            </copy>
+            <copy>
+                <from>'EXPEDIE'</from>
+                <to>$shippingStatus.parameters/schema:status</to>
+            </copy>
+            <copy>
+                <from>concat('TRK-', $shippingRequest.parameters/schema:orderId, '-', substring(string(current-dateTime()), 1, 10))</from>
+                <to>$shippingStatus.parameters/schema:trackingId</to>
+            </copy>
+        </assign>
+
+        <!-- 4. Callback vers le Store (sendShippingStatus) -->
+        <invoke name="NotifyStore"
+                partnerLink="storeCallbackPL"
+                portType="store:StoreCallbackPortType"
+                operation="receiveShippingStatus"
+                inputVariable="shippingStatus"/>
+
+    </sequence>
+
+</process>

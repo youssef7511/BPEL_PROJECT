@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:tns="http://supplychain.example.com/schemas"
+           targetNamespace="http://supplychain.example.com/schemas"
+           elementFormDefault="qualified">
+
+    <!-- Order Details -->
+    <xs:complexType name="OrderDetailsType">
+        <xs:sequence>
+            <xs:element name="orderId" type="xs:string"/>
+            <xs:element name="productId" type="xs:string"/>
+            <xs:element name="quantity" type="xs:int"/>
+            <xs:element name="storeAddress" type="xs:string"/>
+        </xs:sequence>
+    </xs:complexType>
+    <xs:element name="orderDetails" type="tns:OrderDetailsType"/>
+
+    <!-- Product Info (for startRestock) -->
+    <xs:complexType name="ProductInfoType">
+        <xs:sequence>
+            <xs:element name="productId" type="xs:string"/>
+            <xs:element name="productName" type="xs:string"/>
+            <xs:element name="quantity" type="xs:int"/>
+        </xs:sequence>
+    </xs:complexType>
+    <xs:element name="productInfo" type="tns:ProductInfoType"/>
+
+    <!-- Shipping Details -->
+    <xs:complexType name="ShippingDetailsType">
+        <xs:sequence>
+            <xs:element name="orderId" type="xs:string"/>
+            <xs:element name="deliveryAddress" type="xs:string"/>
+            <xs:element name="weight" type="xs:decimal" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+    <xs:element name="shippingDetails" type="tns:ShippingDetailsType"/>
+
+    <!-- Manufacturing Status -->
+    <xs:complexType name="ManufacturingStatusType">
+        <xs:sequence>
+            <xs:element name="orderId" type="xs:string"/>
+            <xs:element name="status" type="xs:string"/> <!-- TERMINE, EN_COURS, ERREUR -->
+            <xs:element name="completionDate" type="xs:dateTime" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+    <xs:element name="manufacturingStatus" type="tns:ManufacturingStatusType"/>
+
+    <!-- Shipping Status -->
+    <xs:complexType name="ShippingStatusType">
+        <xs:sequence>
+            <xs:element name="orderId" type="xs:string"/>
+            <xs:element name="status" type="xs:string"/> <!-- EXPEDIE, EN_TRANSIT, LIVRE -->
+            <xs:element name="trackingId" type="xs:string"/>
+            <xs:element name="estimatedDelivery" type="xs:dateTime" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+    <xs:element name="shippingStatus" type="tns:ShippingStatusType"/>
+
+</xs:schema>

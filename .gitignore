@@ -1,0 +1,23 @@
+# Logs
+*.log
+logs/
+
+# Docker volumes
+docker/ode-logs/
+
+# Test results
+tests/results/
+tests/reports/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temp
+*.tmp
+*.bak

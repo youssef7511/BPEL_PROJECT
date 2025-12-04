@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<con:soapui-project id="StoreProcessTest" 
+                    name="StoreProcess Test Project" 
+                    xmlns:con="http://eviware.com/soapui/config">
+
+    <con:settings/>
+
+    <!-- Interface pour le Store Service -->
+    <con:interface xsi:type="con:WsdlInterface" 
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   id="StoreInterface" 
+                   name="StoreServiceInterface"
+                   bindingName="{http://supplychain.example.com/store}StoreBinding"
+                   type="wsdl">
+
+        <con:settings/>
+        <con:definitionCache/>
+
+        <con:operation id="startRestock" 
+                       name="startRestock" 
+                       bindingOperationName="startRestock"
+                       action="http://supplychain.example.com/store/startRestock"
+                       type="Request-Response">
+
+            <con:settings/>
+
+            <con:request name="StartRestock Request" id="StartRestockRequest">
+                <con:settings/>
+                <con:encoding>UTF-8</con:encoding>
+                <con:endpoint>http://localhost:8080/ode/processes/StoreProcess</con:endpoint>
+
+                <con:request><![CDATA[<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" 
+                                                        xmlns:sch="http://supplychain.example.com/schemas">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <sch:productInfo>
+         <sch:productId>PROD-001</sch:productId>
+         <sch:productName>Widget Premium</sch:productName>
+         <sch:quantity>100</sch:quantity>
+      </sch:productInfo>
+   </soapenv:Body>
+</soapenv:Envelope>]]></con:request>
+
+            </con:request>
+
+        </con:operation>
+
+    </con:interface>
+
+    <!-- Test Suite -->
+    <con:testSuite id="SupplyChainTestSuite" name="Supply Chain Choreography Tests">
+
+        <con:settings/>
+
+        <!-- Test Case: Complete Flow -->
+        <con:testCase id="CompleteFlowTest" name="Test Complete Choreography Flow">
+
+            <con:settings/>
+
+            <!-- Step 1: Trigger startRestock -->
+            <con:testStep xsi:type="con:RequestTestStep" 
+                          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                          id="TriggerRestock" 
+                          name="1. Trigger startRestock">
+
+                <con:settings/>
+
+                <con:config xsi:type="con:RequestTestStepConfig">
+                    <con:interface>StoreServiceInterface</con:interface>
+                    <con:operation>startRestock</con:operation>
+
+                    <con:request name="StartRestock">
+                        <con:settings/>
+                        <con:encoding>UTF-8</con:encoding>
+                        <con:endpoint>http://localhost:8080/ode/processes/StoreProcess</con:endpoint>
+
+                        <con:request><![CDATA[<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" 
+                                                                xmlns:sch="http://supplychain.example.com/schemas">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <sch:productInfo>
+         <sch:productId>PROD-TEST-001</sch:productId>
+         <sch:productName>Test Widget</sch:productName>
+         <sch:quantity>50</sch:quantity>
+      </sch:productInfo>
+   </soapenv:Body>
+</soapenv:Envelope>]]></con:request>
+
+                    </con:request>
+
+                </con:config>
+
+            </con:testStep>
+
+            <!-- Step 2: Wait for async processing -->
+            <con:testStep xsi:type="con:DelayTestStep" 
+                          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                          id="WaitForProcessing" 
+                          name="2. Wait for Async Processing">
+                <con:settings/>
+                <con:delay>60000</con:delay>
+            </con:testStep>
+
+        </con:testCase>
+
+    </con:testSuite>
+
+    <!-- Properties -->
+    <con:properties>
+        <con:property>
+            <con:name>ODE_ENDPOINT</con:name>
+            <con:value>http://localhost:8080/ode</con:value>
+        </con:property>
+    </con:properties>
+
+</con:soapui-project>

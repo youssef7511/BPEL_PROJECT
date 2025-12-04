@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://schemas.xmlsoap.org/wsdl/"
+             xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+             xmlns:tns="http://supplychain.example.com/manufacturer"
+             xmlns:schema="http://supplychain.example.com/schemas"
+             xmlns:plnk="http://docs.oasis-open.org/wsbpel/2.0/plnktype"
+             targetNamespace="http://supplychain.example.com/manufacturer"
+             name="ManufacturerService">
+
+    <import namespace="http://supplychain.example.com/schemas" location="../schemas/common.xsd"/>
+
+    <types>
+        <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+            <xsd:import namespace="http://supplychain.example.com/schemas" schemaLocation="../schemas/common.xsd"/>
+        </xsd:schema>
+    </types>
+
+    <!-- Messages -->
+    <message name="OrderRequestMessage">
+        <part name="parameters" element="schema:orderDetails"/>
+    </message>
+
+    <message name="ManufacturingStatusMessage">
+        <part name="parameters" element="schema:manufacturingStatus"/>
+    </message>
+
+    <!-- Port Types -->
+    <portType name="ManufacturerPortType">
+        <operation name="requestOrder">
+            <input message="tns:OrderRequestMessage"/>
+        </operation>
+    </portType>
+
+    <portType name="ManufacturerCallbackPortType">
+        <operation name="sendManufacturingStatus">
+            <input message="tns:ManufacturingStatusMessage"/>
+        </operation>
+    </portType>
+
+    <!-- Partner Link Types for BPEL -->
+    <plnk:partnerLinkType name="ManufacturerPartnerLT">
+        <plnk:role name="manufacturerService" portType="tns:ManufacturerPortType"/>
+        <plnk:role name="manufacturerCallback" portType="tns:ManufacturerCallbackPortType"/>
+    </plnk:partnerLinkType>
+
+    <!-- Bindings -->
+    <binding name="ManufacturerBinding" type="tns:ManufacturerPortType">
+        <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+        <operation name="requestOrder">
+            <soap:operation soapAction="http://supplychain.example.com/manufacturer/requestOrder"/>
+            <input>
+                <soap:body use="literal"/>
+            </input>
+        </operation>
+    </binding>
+
+    <binding name="ManufacturerCallbackBinding" type="tns:ManufacturerCallbackPortType">
+        <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+        <operation name="sendManufacturingStatus">
+            <soap:operation soapAction="http://supplychain.example.com/manufacturer/sendManufacturingStatus"/>
+            <input>
+                <soap:body use="literal"/>
+            </input>
+        </operation>
+    </binding>
+
+    <!-- Services -->
+    <service name="ManufacturerService">
+        <port name="ManufacturerPort" binding="tns:ManufacturerBinding">
+            <soap:address location="http://localhost:8080/ode/processes/ManufacturerProcess"/>
+        </port>
+    </service>
+
+    <service name="ManufacturerCallbackService">
+        <port name="ManufacturerCallbackPort" binding="tns:ManufacturerCallbackBinding">
+            <soap:address location="http://localhost:8080/ode/processes/ManufacturerCallback"/>
+        </port>
+    </service>
+
+</definitions>

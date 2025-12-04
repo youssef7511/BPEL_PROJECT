@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://schemas.xmlsoap.org/wsdl/"
+             xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+             xmlns:tns="http://supplychain.example.com/shipper"
+             xmlns:schema="http://supplychain.example.com/schemas"
+             xmlns:plnk="http://docs.oasis-open.org/wsbpel/2.0/plnktype"
+             targetNamespace="http://supplychain.example.com/shipper"
+             name="ShipperService">
+
+    <import namespace="http://supplychain.example.com/schemas" location="../schemas/common.xsd"/>
+
+    <types>
+        <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+            <xsd:import namespace="http://supplychain.example.com/schemas" schemaLocation="../schemas/common.xsd"/>
+        </xsd:schema>
+    </types>
+
+    <!-- Messages -->
+    <message name="ShippingRequestMessage">
+        <part name="parameters" element="schema:shippingDetails"/>
+    </message>
+
+    <message name="ShippingStatusMessage">
+        <part name="parameters" element="schema:shippingStatus"/>
+    </message>
+
+    <!-- Port Types -->
+    <portType name="ShipperPortType">
+        <operation name="requestShipping">
+            <input message="tns:ShippingRequestMessage"/>
+        </operation>
+    </portType>
+
+    <portType name="ShipperCallbackPortType">
+        <operation name="sendShippingStatus">
+            <input message="tns:ShippingStatusMessage"/>
+        </operation>
+    </portType>
+
+    <!-- Partner Link Types for BPEL -->
+    <plnk:partnerLinkType name="ShipperPartnerLT">
+        <plnk:role name="shipperService" portType="tns:ShipperPortType"/>
+        <plnk:role name="shipperCallback" portType="tns:ShipperCallbackPortType"/>
+    </plnk:partnerLinkType>
+
+    <!-- Bindings -->
+    <binding name="ShipperBinding" type="tns:ShipperPortType">
+        <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+        <operation name="requestShipping">
+            <soap:operation soapAction="http://supplychain.example.com/shipper/requestShipping"/>
+            <input>
+                <soap:body use="literal"/>
+            </input>
+        </operation>
+    </binding>
+
+    <binding name="ShipperCallbackBinding" type="tns:ShipperCallbackPortType">
+        <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+        <operation name="sendShippingStatus">
+            <soap:operation soapAction="http://supplychain.example.com/shipper/sendShippingStatus"/>
+            <input>
+                <soap:body use="literal"/>
+            </input>
+        </operation>
+    </binding>
+
+    <!-- Services -->
+    <service name="ShipperService">
+        <port name="ShipperPort" binding="tns:ShipperBinding">
+            <soap:address location="http://localhost:8080/ode/processes/ShipperProcess"/>
+        </port>
+    </service>
+
+    <service name="ShipperCallbackService">
+        <port name="ShipperCallbackPort" binding="tns:ShipperCallbackBinding">
+            <soap:address location="http://localhost:8080/ode/processes/ShipperCallback"/>
+        </port>
+    </service>
+
+</definitions>

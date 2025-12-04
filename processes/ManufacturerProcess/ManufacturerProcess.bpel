@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<process name="ManufacturerProcess"
+         targetNamespace="http://supplychain.example.com/bpel/manufacturer"
+         xmlns="http://docs.oasis-open.org/wsbpel/2.0/process/executable"
+         xmlns:bpel="http://docs.oasis-open.org/wsbpel/2.0/process/executable"
+         xmlns:tns="http://supplychain.example.com/bpel/manufacturer"
+         xmlns:mfg="http://supplychain.example.com/manufacturer"
+         xmlns:ship="http://supplychain.example.com/shipper"
+         xmlns:store="http://supplychain.example.com/store"
+         xmlns:schema="http://supplychain.example.com/schemas"
+         expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xpath2.0"
+         queryLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xpath2.0">
+
+    <!-- ==================== IMPORTS ==================== -->
+    <import namespace="http://supplychain.example.com/manufacturer"
+            location="../../wsdl/Manufacturer.wsdl"
+            importType="http://schemas.xmlsoap.org/wsdl/"/>
+    <import namespace="http://supplychain.example.com/shipper"
+            location="../../wsdl/Shipper.wsdl"
+            importType="http://schemas.xmlsoap.org/wsdl/"/>
+    <import namespace="http://supplychain.example.com/store"
+            location="../../wsdl/Store.wsdl"
+            importType="http://schemas.xmlsoap.org/wsdl/"/>
+
+    <!-- ==================== PARTNER LINKS ==================== -->
+    <partnerLinks>
+        <!-- Link avec le Store (reçoit commande, envoie callback) -->
+        <partnerLink name="storePL"
+                     partnerLinkType="mfg:ManufacturerPartnerLT"
+                     myRole="manufacturerService"
+                     partnerRole="manufacturerCallback"/>
+
+        <!-- Link avec le Shipper (invoque requestShipping) -->
+        <partnerLink name="shipperPL"
+                     partnerLinkType="ship:ShipperPartnerLT"
+                     partnerRole="shipperService"/>
+
+        <!-- Link pour callback vers Store (sendManufacturingStatus) -->
+        <partnerLink name="storeCallbackPL"
+                     partnerLinkType="store:StorePartnerLT"
+                     partnerRole="storeCallback"/>
+    </partnerLinks>
+
+    <!-- ==================== VARIABLES ==================== -->
+    <variables>
+        <variable name="orderRequest" messageType="mfg:OrderRequestMessage"/>
+        <variable name="shippingRequest" messageType="ship:ShippingRequestMessage"/>
+        <variable name="manufacturingStatus" messageType="store:ManufacturingStatusMessage"/>
+    </variables>
+
+    <!-- ==================== CORRELATION SETS ==================== -->
+    <correlationSets>
+        <correlationSet name="orderCorrelation" properties="tns:orderId"/>
+    </correlationSets>
+
+    <!-- ==================== MAIN SEQUENCE ==================== -->
+    <sequence name="MainSequence">
+
+        <!-- 1. Recevoir la commande du Store -->
+        <receive name="ReceiveOrder"
+                 partnerLink="storePL"
+                 portType="mfg:ManufacturerPortType"
+                 operation="requestOrder"
+                 variable="orderRequest"
+                 createInstance="yes">
+            <correlations>
+                <correlation set="orderCorrelation" initiate="yes"/>
+            </correlations>
+        </receive>
+
+        <!-- 2. Simuler le temps de fabrication (30 secondes) -->
+        <wait name="SimulateManufacturing">
+            <for>'PT30S'</for>
+        </wait>
+
+        <!-- 3. Préparer la demande d'expédition pour le Shipper -->
+        <assign name="PrepareShippingRequest">
+            <copy>
+                <from>$orderRequest.parameters/schema:orderId</from>
+                <to>$shippingRequest.parameters/schema:orderId</to>
+            </copy>
+            <copy>
+                <from>$orderRequest.parameters/schema:storeAddress</from>
+                <to>$shippingRequest.parameters/schema:deliveryAddress</to>
+            </copy>
+        </assign>
+
+        <!-- 4. Invoquer le Shipper (asynchrone) -->
+        <invoke name="InvokeShipper"
+                partnerLink="shipperPL"
+                portType="ship:ShipperPortType"
+                operation="requestShipping"
+                inputVariable="shippingRequest"/>
+
+        <!-- 5. Préparer le statut de fabrication pour le Store -->
+        <assign name="PrepareManufacturingStatus">
+            <copy>
+                <from>$orderRequest.parameters/schema:orderId</from>
+                <to>$manufacturingStatus.parameters/schema:orderId</to>
+            </copy>
+            <copy>
+                <from>'TERMINE'</from>
+                <to>$manufacturingStatus.parameters/schema:status</to>
+            </copy>
+            <copy>
+                <from>current-dateTime()</from>
+                <to>$manufacturingStatus.parameters/schema:completionDate</to>
+            </copy>
+        </assign>
+
+        <!-- 6. Callback vers le Store (sendManufacturingStatus) -->
+        <invoke name="NotifyStore"
+                partnerLink="storeCallbackPL"
+                portType="store:StoreCallbackPortType"
+                operation="receiveManufacturingStatus"
+                inputVariable="manufacturingStatus"/>
+
+    </sequence>
+
+</process>
